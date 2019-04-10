@@ -6,7 +6,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
@@ -15,8 +14,6 @@ import (
 	"syscall"
 
 	"github.com/BurntSushi/toml"
-	"github.com/Dieterbe/go-metrics"
-	"github.com/graphite-ng/carbon-relay-ng/aggregator"
 	"github.com/graphite-ng/carbon-relay-ng/badmetrics"
 	"github.com/graphite-ng/carbon-relay-ng/cfg"
 	"github.com/graphite-ng/carbon-relay-ng/input"
@@ -112,8 +109,6 @@ func main() {
 		runtime.GOMAXPROCS(config.Max_procs)
 	}
 
-	stats.New(config.Instance)
-
 	if config.Pid_file != "" {
 		f, err := os.Create(config.Pid_file)
 		if err != nil {
@@ -124,9 +119,6 @@ func main() {
 			log.Fatalf("error writing to pidfile: %s", err.Error())
 		}
 		f.Close()
-	}
-
-	aggregator.InitMetrics()
 
 	go func() {
 		sys := stats.Gauge("what=virtual_memory.unit=Byte")
