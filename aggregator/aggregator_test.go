@@ -1,10 +1,12 @@
 package aggregator
 
 import (
-	"bytes"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"github.com/graphite-ng/carbon-relay-ng/encoding"
 )
 
 func TestScanner(t *testing.T) {
@@ -220,18 +222,18 @@ func BenchmarkAggregator5Aggregates100PointsPerAggregateWithReCache(b *testing.B
 
 func benchmarkAggregator(aggregates, pointsPerAggregate int, match string, cache bool, b *testing.B) {
 	//fmt.Println("BenchmarkAggregator", aggregates, pointsPerAggregate, "with b.N", b.N)
-	out := make(chan []byte)
+	out := make(chan encoding.Datapoint)
 	done := make(chan struct{})
 	go func(match string) {
 		count := 0
 		for v := range out {
-			count += 1
-			if bytes.HasPrefix(v, []byte("aggregated.totals.abc.ignoreme")) {
+			count++
+			if strings.HasPrefix(v.Name, "aggregated.totals.abc.ignoreme") {
 				continue
 			}
-			if string(v[33:39]) != match {
-				b.Fatalf("expected 'aggregated.totals.abc.<10 random chars> %s... <ts>'. got: %q", match, v)
-			}
+			// if v.Name[33:39] != match {
+			// 	b.Fatalf("expected 'aggregated.totals.abc.<10 random chars> %s... <ts>'. got: %q", match, v)
+			// }
 			//	if count%100 == 0 {
 			//fmt.Println("got", string(v), "count is now", count)
 			//	}
@@ -288,8 +290,6 @@ func benchmarkAggregator(aggregates, pointsPerAggregate int, match string, cache
 			wall:  int64(t + 12),
 		})
 	}
-	val := strconv.AppendUint(nil, 1, 10)
-
 	regex := `^raw\.(...)\.([A-Za-z0-9_-]+)$`
 	outFmt := "aggregated.totals.$1.$2"
 
@@ -308,12 +308,11 @@ func benchmarkAggregator(aggregates, pointsPerAggregate int, match string, cache
 		//	fmt.Println("setting clock to", wall[i], "and sending", len(inputs)/2, "will go through. for ts", string(ts))
 		clock.Set(t.wall)
 		for _, input := range inputs {
-			buf := [][]byte{
-				input,
-				val,
-				t.tsBuf,
-			}
-			agg.AddMaybe(buf, 1, t.ts)
+			agg.AddMaybe(encoding.Datapoint{
+				Name:      string(input),
+				Value:     1,
+				Timestamp: uint64(t.ts),
+			})
 		}
 	}
 	// we must make sure to get the final aggregated point.
@@ -321,13 +320,13 @@ func benchmarkAggregator(aggregates, pointsPerAggregate int, match string, cache
 	// but can't affect any results we care about.
 	// making sure that all values we care about are pushed out of the buffer and processed.
 	//fmt.Println("adding", bufSize, "more to push through buffer")
+	dp := encoding.Datapoint{
+		Name:      "raw.abc.ignoreme",
+		Value:     1,
+		Timestamp: uint64(tinfos[0].ts),
+	}
 	for i := 0; i < bufSize; i++ {
-		buf := [][]byte{
-			[]byte("raw.abc.ignoreme"),
-			val,
-			tinfos[0].tsBuf,
-		}
-		agg.AddMaybe(buf, 1, tinfos[0].ts)
+		agg.AddMaybe(dp)
 	}
 	// then, we keep updating the clock, triggering ticks, with high enough timestamps to surely flush the last aggregates.
 	// this so that if the aggregator is busy and doesn't read ticks, we keep trying until it isn't and does.
@@ -338,7 +337,7 @@ func benchmarkAggregator(aggregates, pointsPerAggregate int, match string, cache
 		case <-done:
 			return
 		default:
-			if time.Since(almostFinished) > 2*time.Second {
+			if time.Since(almostFinished) > 4*time.Second {
 				b.Fatalf("waited 2 seconds for all results to come in. giving up")
 			}
 			clock.Set(lastFlushTs)

@@ -1,26 +1,58 @@
 package input
 
-import "io"
+import (
+	"bufio"
+	"fmt"
+	"io"
 
-type Plugin interface {
+	"github.com/graphite-ng/carbon-relay-ng/encoding"
+)
+
+type Input interface {
 	Name() string
-	Start() error
-	Stop() bool
+	Format() encoding.FormatName
+	Handler() encoding.FormatAdapter
+	Start(d Dispatcher) error
+	Stop() error
 }
 
-// Handler is responsible for reading input.
-// It should call:
-// Dispatcher.IncNumInvalid upon protocol errors
-// Dispatcher.Dispatch to process data that's protocol-valid
-type Handler interface {
-	Kind() string
-	Handle(io.Reader) error
+type BaseInput struct {
+	Dispatcher Dispatcher
+	name       string
+	handler    encoding.FormatAdapter
+}
+
+func (b *BaseInput) Name() string {
+	return b.name
+}
+func (b *BaseInput) Handler() encoding.FormatAdapter {
+	return b.handler
+}
+func (b *BaseInput) Format() encoding.FormatName {
+	return b.handler.Kind()
+}
+
+func (b *BaseInput) handleReader(r io.Reader) error {
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		b.handle(scanner.Bytes())
+	}
+	return scanner.Err()
+}
+
+func (b *BaseInput) handle(msg []byte) error {
+	d, err := b.handler.Load(msg)
+	if err != nil {
+		return fmt.Errorf("error while processing `%s`: %s", string(msg), err)
+	}
+	b.Dispatcher.Dispatch(d)
+	return nil
 }
 
 type Dispatcher interface {
 	// Dispatch runs data validation and processing
 	// implementations must not reuse buf after returning
-	Dispatch(buf []byte)
+	Dispatch(dp encoding.Datapoint)
 	// IncNumInvalid marks protocol-level decoding failures
 	// does not apply to carbon as the protocol is trivial and any parse failure
 	// is a message failure (handled in Dispatch)
