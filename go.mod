@@ -36,6 +36,7 @@ require (
 	github.com/segmentio/kafka-go v0.3.3
 	github.com/serialx/hashring v0.0.0-20190422032157-8b2912629002
 	github.com/smartystreets/goconvey v1.6.4 // indirect
+	github.com/smallnest/weighted v0.0.0-20190919111400-6285d794850d
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/goleveldb v1.0.0
