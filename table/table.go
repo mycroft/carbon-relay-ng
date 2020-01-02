@@ -679,14 +679,14 @@ func (table *Table) InitRoutes(config cfg.Config, meta toml.MetaData) error {
 			route, err := route.NewLoadBalance(routeConfig.Key, m, destinations)
 			if err != nil {
 				routeConfigLogger.Error("error adding route", zap.Error(err))
-				return fmt.Errorf("error adding route '%s'", routeConfig.Key, err)
+				return fmt.Errorf("error adding route '%s': %s", routeConfig.Key, err)
 			}
 			table.AddRoute(route)
 		case "consistentHashing":
 			destinations, err := imperatives.ParseDestinations(routeConfig.Destinations, table, false, routeConfig.Key)
 			if err != nil {
 				routeConfigLogger.Error("could not parse destinations for route", zap.Error(err))
-				return fmt.Errorf("could not parse destinations for route '%s'", routeConfig.Key)
+				return fmt.Errorf("could not parse destinations for route '%s': %s", routeConfig.Key, err)
 			}
 			if len(destinations) < 2 {
 				return fmt.Errorf("must get at least 2 destination for route '%s'", routeConfig.Key)
