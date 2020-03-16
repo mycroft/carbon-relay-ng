@@ -89,7 +89,7 @@ func NewBgMetadataRoute(key, prefix, sub, regex, aggregationCfg, schemasCfg stri
 	var err error
 
 	m := BgMetadata{
-		baseRoute:         *newBaseRoute(key, "bg_metadata"),
+		baseRoute:         *newBaseRoute(key, "bg_metadata", matcher.Matcher{}),
 		shards:            make([]shard, bfCfg.ShardingFactor),
 		bfCfg:             bfCfg,
 		metricDirectories: make(chan string),

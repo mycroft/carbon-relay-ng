@@ -150,7 +150,6 @@ func (s *Spool) Buffer() {
 
 			pre := time.Now()
 			s.queue.Enqueue(dp.AppendToBuf(buf), dp.Tags)
-			chunk = chunk[:0]
 			s.sm.WriteDuration.Observe(time.Since(pre).Seconds())
 		}
 	}

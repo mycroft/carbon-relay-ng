@@ -679,7 +679,7 @@ func (table *Table) InitRoutes(config cfg.Config, meta toml.MetaData) error {
 			route, err := route.NewLoadBalance(routeConfig.Key, m, destinations)
 			if err != nil {
 				routeConfigLogger.Error("error adding route", zap.Error(err))
-				return fmt.Errorf("error adding route '%s'", routeConfig.Key, err)
+				return fmt.Errorf("error adding route '%s': %s", routeConfig.Key, err)
 			}
 			table.AddRoute(route)
 		case "consistentHashing":

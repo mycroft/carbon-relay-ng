@@ -130,8 +130,8 @@ func (s *LVSSelector) GetDestination() *dest.Destination {
 		return s.dests[0].Dest
 	}
 	passed := false
-	next := (s.i + 1) %s.n
-	for i := next;!passed || i != next ; i = (i+1)%s.n {
+	next := (s.i + 1) % s.n
+	for i := next; !passed || i != next; i = (i + 1) % s.n {
 		passed = true
 		if i == 0 {
 			// Lower the weight to select lower nodes
