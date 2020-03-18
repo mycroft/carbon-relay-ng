@@ -283,6 +283,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:31b28df4215ef2961ca7f6f95d3dfaefd5f6fd2fdc2784fca464e068db29b766"
+  name = "github.com/libp2p/go-reuseport"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "2d7f11602c60edcf04c843f90cc8d194febb5f0d"
+
+[[projects]]
+  branch = "master"
   digest = "1:fbf2e13dbd89ee228a027b6f49cc139731496b7e910d458d0ff95f95fe3c6250"
   name = "github.com/metrics20/go-metrics20"
   packages = ["carbon20"]
@@ -310,6 +318,14 @@
   packages = ["xxHash32"]
   pruneopts = "NUT"
   revision = "5a004441f897722c627870a981d02b29924215fa"
+
+[[projects]]
+  digest = "1:4047c378584616813d610c9f993bf90dd0d07aed8d94bd3bc299cd35ececdcba"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "NUT"
+  revision = "614d223910a179a466c1767a985424175c39b465"
+  version = "v0.9.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -558,6 +574,7 @@
     "github.com/grafana/metrictank/schema/msg",
     "github.com/jpillora/backoff",
     "github.com/kisielk/og-rek",
+    "github.com/libp2p/go-reuseport",
     "github.com/metrics20/go-metrics20/carbon20",
     "github.com/prometheus/procfs",
     "github.com/sirupsen/logrus",
