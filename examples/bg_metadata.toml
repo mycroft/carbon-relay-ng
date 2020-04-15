@@ -25,7 +25,7 @@ type = 'bg_metadata'
     storage_aggregations = "/tmp/storage-aggregation.conf"
     storage = "elasticsearch"
     [route.bg_metadata.elasticsearch]
-        storage_server = "http://localhost:9200"
+        storage_servers = ["http://localhost:9200"]
         bulk_size = 10000
 
 [[route]]

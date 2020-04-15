@@ -50,6 +50,6 @@ type = 'bg_metadata'
     storage_aggregations = "/config/storage-aggregation.conf"
     storage = "elasticsearch"
         [route.bg_metadata.elasticsearch]
-        storage_server = "http://elasticsearch:9200"
+        storage_servers = ["http://elasticsearch:9200"]
         bulk_size = 2
         max_retry = 1

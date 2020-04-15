@@ -300,7 +300,7 @@ type = 'bg_metadata'
     storage_aggregations = "storage-aggregation.conf"
     storage = "elasticsearch"
         [route.bg_metadata.elasticsearch]
-        storage_server = ["http://elasticsearch:9200"]
+        storage_servers = ["http://elasticsearch:9200"]
         bulk_size = 10000
         index_name = "bg"
         username = "user"
