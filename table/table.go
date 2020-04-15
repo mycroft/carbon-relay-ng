@@ -773,9 +773,18 @@ func (table *Table) InitRoutes(config cfg.Config, meta toml.MetaData) error {
 				return fmt.Errorf("error adding route '%s': clear interval value must be specified", routeConfig.Key)
 			}
 
+			if bgMetadataCfg.SaveInterval == "" {
+				return fmt.Errorf("error adding route '%s': save interval value must be specified", routeConfig.Key)
+			}
+
 			clearInterval, err := time.ParseDuration(bgMetadataCfg.ClearInterval)
 			if err != nil {
 				return fmt.Errorf("error adding route '%s': could not parse clear_interval", routeConfig.Key)
+			}
+
+			saveInterval, err := time.ParseDuration(bgMetadataCfg.SaveInterval)
+			if err != nil {
+				return fmt.Errorf("error adding route '%s': could not parse save_interval", routeConfig.Key)
 			}
 
 			// clearWait is not required, so it's only parsed if it's defined
@@ -817,6 +826,7 @@ func (table *Table) InitRoutes(config cfg.Config, meta toml.MetaData) error {
 				bgMetadataCfg.Cache,
 				clearInterval,
 				clearWait,
+				saveInterval,
 			)
 			if err != nil {
 				return fmt.Errorf("error adding route '%s': %s", routeConfig.Key, err)

@@ -42,6 +42,7 @@ type BloomFilterConfig struct {
 	ShardingFactor int
 	Cache          string
 	ClearInterval  time.Duration
+	SaveInterval   time.Duration
 	ClearWait      time.Duration
 	logger         *zap.Logger
 }
@@ -63,7 +64,7 @@ type BgMetadata struct {
 }
 
 // NewBloomFilterConfig creates a new BloomFilterConfig
-func NewBloomFilterConfig(n uint, p float64, shardingFactor int, cache string, clearInterval, clearWait time.Duration) (BloomFilterConfig, error) {
+func NewBloomFilterConfig(n uint, p float64, shardingFactor int, cache string, clearInterval, clearWait, saveInterval time.Duration) (BloomFilterConfig, error) {
 	bfc := BloomFilterConfig{
 		N:              n,
 		P:              p,
@@ -71,6 +72,7 @@ func NewBloomFilterConfig(n uint, p float64, shardingFactor int, cache string, c
 		Cache:          cache,
 		ClearInterval:  clearInterval,
 		ClearWait:      clearWait,
+		SaveInterval:   saveInterval,
 		logger:         zap.L(),
 	}
 	if clearWait != 0 {
@@ -139,6 +141,8 @@ func NewBgMetadataRoute(key, prefix, sub, regex, aggregationCfg, schemasCfg stri
 				}
 			}
 		}
+
+		go m.saveBloomFilter()
 	}
 	m.ctx, m.cancel = context.WithCancel(context.Background())
 
@@ -208,6 +212,58 @@ func (s *shard) saveShardState(cachePath string) error {
 	return nil
 }
 
+// Remove Shard State file from cache and return an error if file exists and but fails to be removed.
+func (s *shard) removeShardState(cachePath string) error {
+	fp := filepath.Join(cachePath, fmt.Sprintf("shard%d.state", s.num))
+
+	if _, err := os.Stat(fp); !os.IsNotExist(err) {
+		return os.Remove(fp)
+	}
+
+	return nil
+}
+
+// Continuously save bloom filters
+func (m *BgMetadata) saveBloomFilter() {
+	var err error
+
+	m.logger.Debug("Starting goroutine for bloom filter saving")
+	m.wg.Add(1)
+	defer m.wg.Done()
+
+	// Use an empty filter to check if existing filters are empty or not.
+	emptyFilter := bloom.NewWithEstimates(m.bfCfg.N, m.bfCfg.P)
+
+	t := time.NewTicker(m.bfCfg.SaveInterval)
+	for {
+		select {
+		case <-m.ctx.Done():
+			t.Stop()
+			return
+		case <-t.C:
+			m.logger.Debug("saveBloomFilter: Saving shards.")
+			for i := range m.shards {
+				shard := &m.shards[i]
+				shard.lock.Lock()
+
+				// Check if the bloom filter is equal to an empty filter:
+				// if not so, save it; else, erase state file.
+				if !shard.filter.Equal(emptyFilter) {
+					err = shard.saveShardState(m.bfCfg.Cache)
+				} else {
+					err = shard.removeShardState(m.bfCfg.Cache)
+				}
+
+				if err != nil {
+					m.logger.Error("cannot save shard state to filesystem", zap.Error(err))
+				}
+				shard.lock.Unlock()
+			}
+			m.logger.Debug("saveBloomFilter: Done saving all shards.")
+		}
+	}
+}
+
 func (m *BgMetadata) clearBloomFilter() {
 	m.logger.Debug("starting goroutine for bloom filter cleanup")
 	m.wg.Add(1)
@@ -227,17 +283,18 @@ func (m *BgMetadata) clearBloomFilter() {
 }
 
 func (m *BgMetadata) clearBloomFilterShard(shardNum int) {
+	m.logger.Debug("Cleaning Bloom Filter Shard", zap.Int("shard_number", shardNum+1))
 	sh := &m.shards[shardNum]
 	sh.lock.Lock()
-	if m.bfCfg.Cache != "" {
-		err := sh.saveShardState(m.bfCfg.Cache)
-		if err != nil {
-			m.logger.Error("cannot save shard state to filesystem", zap.Error(err))
-		}
-	}
 	m.logger.Info("clearing filter for shard", zap.Int("shard_number", shardNum+1))
 	sh.filter.ClearAll()
 	m.mm.BloomFilterEntries.DeleteLabelValues(strconv.Itoa(sh.num))
+	if m.bfCfg.Cache != "" {
+		if err := sh.removeShardState(m.bfCfg.Cache); err != nil {
+			m.logger.Warn("could not remove shard state file.", zap.Error(err))
+		}
+	}
+
 	sh.lock.Unlock()
 	time.Sleep(m.bfCfg.ClearWait)
 }
