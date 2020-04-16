@@ -231,9 +231,6 @@ func (m *BgMetadata) saveBloomFilter() {
 	m.wg.Add(1)
 	defer m.wg.Done()
 
-	// Use an empty filter to check if existing filters are empty or not.
-	emptyFilter := bloom.NewWithEstimates(m.bfCfg.N, m.bfCfg.P)
-
 	t := time.NewTicker(m.bfCfg.SaveInterval)
 	for {
 		select {
@@ -246,17 +243,11 @@ func (m *BgMetadata) saveBloomFilter() {
 				shard := &m.shards[i]
 				shard.lock.Lock()
 
-				// Check if the bloom filter is equal to an empty filter:
-				// if not so, save it; else, erase state file.
-				if !shard.filter.Equal(emptyFilter) {
-					err = shard.saveShardState(m.bfCfg.Cache)
-				} else {
-					err = shard.removeShardState(m.bfCfg.Cache)
-				}
-
+				err = shard.saveShardState(m.bfCfg.Cache)
 				if err != nil {
 					m.logger.Error("cannot save shard state to filesystem", zap.Error(err))
 				}
+
 				shard.lock.Unlock()
 			}
 			m.logger.Debug("saveBloomFilter: Done saving all shards.")
@@ -289,12 +280,6 @@ func (m *BgMetadata) clearBloomFilterShard(shardNum int) {
 	m.logger.Info("clearing filter for shard", zap.Int("shard_number", shardNum+1))
 	sh.filter.ClearAll()
 	m.mm.BloomFilterEntries.DeleteLabelValues(strconv.Itoa(sh.num))
-	if m.bfCfg.Cache != "" {
-		if err := sh.removeShardState(m.bfCfg.Cache); err != nil {
-			m.logger.Warn("could not remove shard state file.", zap.Error(err))
-		}
-	}
-
 	sh.lock.Unlock()
 	time.Sleep(m.bfCfg.ClearWait)
 }

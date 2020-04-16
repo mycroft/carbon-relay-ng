@@ -26,6 +26,10 @@ import (
 	"github.com/graphite-ng/carbon-relay-ng/route"
 )
 
+const (
+	default_save_interval = "360s"
+)
+
 type TableConfig struct {
 	rewriters   []rewriter.RW
 	aggregators []*aggregator.Aggregator
@@ -774,7 +778,7 @@ func (table *Table) InitRoutes(config cfg.Config, meta toml.MetaData) error {
 			}
 
 			if bgMetadataCfg.SaveInterval == "" {
-				return fmt.Errorf("error adding route '%s': save interval value must be specified", routeConfig.Key)
+				bgMetadataCfg.SaveInterval = default_save_interval
 			}
 
 			clearInterval, err := time.ParseDuration(bgMetadataCfg.ClearInterval)

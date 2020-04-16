@@ -262,7 +262,7 @@ filter_size                 |     Y     |  uint       | N/A           |  max tot
 fault_tolerance             |     Y     |  float      | N/A           |  transparent, value between 0.0 and 1.0
 clear_interval              |     Y     |  string     | N/A           |  frequency of filter clearing (all shards) do not set if clear_wait
 clear_wait                  |     Y     |  string     | N/A           |  wait time between each filter clear. defaults to clear_interval/sharding_factor
-save_interval               |     Y     |  string     | N/A           |  filter saving for all shards frequency
+save_interval               |     N     |  string     | "360s"        |  filter saving for all shards frequency (default: 5 min)
 storage_aggregations        |     Y     |  string     | N/A           |  biggraphite formated aggregation config path
 storage_schemas             |     Y     |  string     | N/A           |  biggraphite formated schemas config path 
 storage                     |     N     |  string     | ""            |  Storage backend to use either "cassandra" or "elasticsearch" 
