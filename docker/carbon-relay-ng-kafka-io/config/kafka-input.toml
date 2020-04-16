@@ -45,6 +45,7 @@ type = 'bg_metadata'
     filter_size = 1000
     fault_tolerance = 0.0000001
     clear_interval = "60s"
+    save_interval = "30s"
     cache = "/tmp/"
     storage_schemas = "/config/storage-schemas.conf"
     storage_aggregations = "/config/storage-aggregation.conf"

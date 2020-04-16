@@ -16,6 +16,7 @@ func testBloomFilterConfig() BloomFilterConfig {
 		filterSize     = 1000000
 		faultTolerance = 0.0000001
 		clearInterval  = time.Duration(10 * time.Millisecond)
+		saveInterval   = time.Duration(10 * time.Millisecond)
 		cache          = "" // don't test caching
 	)
 	var clearWait time.Duration
@@ -26,6 +27,7 @@ func testBloomFilterConfig() BloomFilterConfig {
 		cache,
 		clearInterval,
 		clearWait,
+		saveInterval,
 	)
 	return bfc
 }
