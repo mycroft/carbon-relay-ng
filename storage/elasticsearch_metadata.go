@@ -203,6 +203,7 @@ func (esc *BgMetadataElasticSearchConnector) Close() {
 }
 
 func (esc *BgMetadataElasticSearchConnector) createIndicesAndMapping(metricIndexName, directoryIndexName string) error {
+	include_type_name := true
 	indices := []struct{ name, mapping string }{{metricIndexName, metricsMapping}, {directoryIndexName, dirMapping}}
 	for _, index := range indices {
 		indexCreateRequest := esapi.IndicesCreateRequest{Index: index.name}
@@ -210,7 +211,7 @@ func (esc *BgMetadataElasticSearchConnector) createIndicesAndMapping(metricIndex
 		esc.logger.Info("using index", zap.String("name", index.name))
 		// extract TODO error deserialize
 		r := strings.NewReader(index.mapping)
-		request := esapi.IndicesPutMappingRequest{Index: []string{index.name}, Body: r, DocumentType: documentType}
+		request := esapi.IndicesPutMappingRequest{Index: []string{index.name}, Body: r, DocumentType: documentType, IncludeTypeName: &include_type_name}
 		res, err = request.Do(context.Background(), esc.client)
 
 		if err != nil {
