@@ -237,7 +237,10 @@ func (esc *BgMetadataElasticSearchConnector) addDocumentToBuff(doc ElasticSearch
 
 	esc.bulkBuffer = append(esc.bulkBuffer, doc)
 	if len(esc.bulkBuffer) == cap(esc.bulkBuffer) {
-		esc.sendAndClearBuffer()
+		err := esc.sendAndClearBuffer()
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	return nil
 }
@@ -249,7 +252,7 @@ func (esc *BgMetadataElasticSearchConnector) sendAndClearBuffer() error {
 	var statusCode int
 
 	if err != nil {
-		esc.UpdatedDocuments.WithLabelValues("failure").Add(float64(len(esc.bulkBuffer)))
+		esc.UpdatedDocuments.WithLabelValues("failure", "any").Add(float64(len(esc.bulkBuffer)))
 		return fmt.Errorf("Could not get index: %w", err)
 	}
 
