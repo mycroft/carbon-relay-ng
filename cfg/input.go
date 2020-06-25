@@ -71,7 +71,6 @@ func (c *ListenerConfig) Build() (input.Input, error) {
 	return l, nil
 }
 
-// for more informations about the fields, go look at https://github.com/segmentio/kafka-go/blob/master/reader.go#L291
 type KafkaConfig struct {
 	baseInputConfig     `mapstructure:",squash"`
 	ID                  string        `mapstructure:"client_id,omitempty"`
@@ -89,6 +88,7 @@ type KafkaConfig struct {
 	MaxAttempts         int           `mapstructure:"max_attempts,omitempty"`
 	ReturnErrors        bool          `mapstructure:"return_errors,omitempty"`
 	InitialOffsetOldest bool          `mapstructure:"initial_offset_oldest,omitempty"`
+	EnableTags          bool          `mapstructure:"enable_tags,omitempty"`
 }
 
 func (c *KafkaConfig) Build() (input.Input, error) {
@@ -110,8 +110,13 @@ func (c *KafkaConfig) Build() (input.Input, error) {
 		return nil, kafkaEmptyTopicError
 	}
 
-	// 0 Mean disabled
-	kafkaConfig.Consumer.Offsets.CommitInterval = c.CommitInterval
+	// Automatic commit strategy
+	if c.CommitInterval > 0 {
+		kafkaConfig.Consumer.Offsets.AutoCommit.Enable = true
+		kafkaConfig.Consumer.Offsets.AutoCommit.Interval = c.CommitInterval
+	} else {
+		kafkaConfig.Consumer.Offsets.AutoCommit.Enable = false
+	}
 
 	if c.RebalanceTimeout != 0 {
 		kafkaConfig.Consumer.Group.Rebalance.Timeout = c.RebalanceTimeout
@@ -126,6 +131,7 @@ func (c *KafkaConfig) Build() (input.Input, error) {
 	kafkaConfig.Consumer.Offsets.Retry.Max = util.MaxInt(c.MaxAttempts, 3)
 	kafkaConfig.Consumer.Group.Rebalance.Retry.Max = util.MaxInt(c.MaxAttempts, 3)
 	kafkaConfig.Consumer.Offsets.Retry.Max = util.MaxInt(c.MaxAttempts, 3)
+	kafkaConfig.Consumer.MaxProcessingTime = time.Second
 
 	backoffMin := c.BackoffMin
 	backoffMax := c.BackoffMax
@@ -161,6 +167,7 @@ func (c *KafkaConfig) Build() (input.Input, error) {
 	kafkaConfig.ClientID = c.ID
 
 	if c.InitialOffsetOldest {
+		// This sets the offset if and only if none are found in the Kafka consumer offset topic
 		kafkaConfig.Consumer.Offsets.Initial = sarama.OffsetOldest
 	}
 
@@ -170,7 +177,14 @@ func (c *KafkaConfig) Build() (input.Input, error) {
 	if err != nil {
 		return nil, fmt.Errorf(handlerErrorFmt, fmt.Sprintf("kafka config: %s", err))
 	}
-	return input.NewKafka(brokers, topic, consumerGroupID, kafkaConfig, h), nil
+
+	// When disabling commit interval we'll always reset consumer offsets to the latest available message
+	// Else we'll restart consuming from whatever offset is stored in the kafka consumerOffset topic for that
+	// consumerID. If it's too far away and the offset does not exist anymore it wil callback to
+	// kafkaConfig.Consumer.Offsets.Initial
+	resetOffsets := c.CommitInterval <= 0
+
+	return input.NewKafka(brokers, topic, consumerGroupID, kafkaConfig, h, resetOffsets, c.EnableTags), nil
 }
 
 func (c *Config) ProcessInputConfig() error {
