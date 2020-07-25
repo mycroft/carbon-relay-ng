@@ -35,7 +35,15 @@ func (b *BaseInput) Format() encoding.FormatName {
 func (b *BaseInput) handleReader(r io.Reader, tags encoding.Tags) error {
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
-		b.handle(scanner.Bytes(), tags)
+		taintedTags := make(encoding.Tags)
+
+		// Copy from the original map to the target map
+		for key, value := range tags {
+			taintedTags[key] = value
+		}
+
+		// Use taintedTags.
+		b.handle(scanner.Bytes(), taintedTags)
 	}
 	return scanner.Err()
 }
