@@ -17,16 +17,17 @@ import (
 // and relies on the Handler to take care of reading data
 type Listener struct {
 	BaseInput
-	wg          sync.WaitGroup
-	kind        string // the kind of associated handler
-	addr        string
-	readTimeout time.Duration
-	tcpWorkers  []tcpWorker
-	udpWorkers  []udpWorker
-	shutdown    chan struct{}
-	HandleConn  func(l *Listener, c net.Conn)
-	logger      *zap.Logger
-	instance    string
+	wg            sync.WaitGroup
+	kind          string // the kind of associated handler
+	addr          string
+	readTimeout   time.Duration
+	tcpWorkers    []tcpWorker
+	udpWorkers    []udpWorker
+	shutdown      chan struct{}
+	HandleConn    func(l *Listener, c net.Conn)
+	logger        *zap.Logger
+	instance      string
+	skipInputTags bool // Do not include carbon-relay-ng tags in metrics.
 }
 
 const (
@@ -49,18 +50,20 @@ type udpWorker struct {
 }
 
 // NewListener creates a new listener.
-func NewListener(addr string, readTimeout time.Duration, TCPWorkerCount int, UDPWorkerCount int, handler encoding.FormatAdapter, instance string) *Listener {
+func NewListener(addr string, readTimeout time.Duration, TCPWorkerCount int, UDPWorkerCount int, handler encoding.FormatAdapter, instance string, skipInputTags bool) *Listener {
+	handler.SetOmitTags(skipInputTags)
 	return &Listener{
-		BaseInput:   BaseInput{handler: handler, name: addr},
-		kind:        handler.KindS(),
-		addr:        addr,
-		readTimeout: readTimeout,
-		shutdown:    make(chan struct{}),
-		HandleConn:  handleConn,
-		udpWorkers:  make([]udpWorker, UDPWorkerCount),
-		tcpWorkers:  make([]tcpWorker, TCPWorkerCount),
-		logger:      zap.L().With(zap.String("localAddress", addr), zap.String("kind", handler.KindS())),
-		instance:    instance,
+		BaseInput:     BaseInput{handler: handler, name: addr},
+		kind:          handler.KindS(),
+		addr:          addr,
+		readTimeout:   readTimeout,
+		shutdown:      make(chan struct{}),
+		HandleConn:    handleConn,
+		udpWorkers:    make([]udpWorker, UDPWorkerCount),
+		tcpWorkers:    make([]tcpWorker, TCPWorkerCount),
+		logger:        zap.L().With(zap.String("localAddress", addr), zap.String("kind", handler.KindS())),
+		instance:      instance,
+		skipInputTags: skipInputTags,
 	}
 }
 
@@ -210,8 +213,13 @@ func (w *tcpWorker) acceptTcpConn(l *Listener, conn net.Conn) {
 	l.HandleConn(l, NewTimeoutConn(conn, l.readTimeout))
 	conn.Close()
 }
+
 func (l *Listener) getTags(applicationIp string) encoding.Tags {
 	tags := make(encoding.Tags)
+	if l.skipInputTags {
+		return tags
+	}
+
 	tags["carbonRelayInstance"] = l.instance
 	tags["appIpPortSrc"] = applicationIp
 	return tags
