@@ -59,6 +59,7 @@ type ListenerConfig struct {
 	Workers         int           `mapstructure:"workers,omitempty"`
 	ListenAddr      string        `mapstructure:"listen_addr,omitempty"`
 	ReadTimeout     time.Duration `mapstructure:"read_timeout,omitempty"`
+	SkipInputTags   bool          `mapstructure:"skip_input_tags,omitempty"`
 	instance        string
 }
 
@@ -67,7 +68,7 @@ func (c *ListenerConfig) Build() (input.Input, error) {
 	if err != nil {
 		return nil, fmt.Errorf(handlerErrorFmt, fmt.Sprintf("listener[%s] config: %s", c.ListenAddr, err))
 	}
-	l := input.NewListener(c.ListenAddr, c.ReadTimeout, c.Workers, c.Workers, h, c.instance)
+	l := input.NewListener(c.ListenAddr, c.ReadTimeout, c.Workers, c.Workers, h, c.instance, c.SkipInputTags)
 	return l, nil
 }
 
