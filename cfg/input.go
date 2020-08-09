@@ -48,10 +48,15 @@ type InputConfig interface {
 type baseInputConfig struct {
 	FormatOptions encoding.FormatOptions `mapstructure:",squash"`
 	Format        encoding.FormatName    `mapstructure:"format,omitempty"`
+	omitTags      bool
 }
 
 func (bc baseInputConfig) Handler() (encoding.FormatAdapter, error) {
-	return bc.Format.ToHandler(bc.FormatOptions)
+	return bc.Format.ToHandler(bc.FormatOptions, true)
+}
+
+func (bc baseInputConfig) SetOmitTags(omitTags bool) {
+	bc.omitTags = omitTags
 }
 
 type ListenerConfig struct {

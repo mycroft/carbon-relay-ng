@@ -38,13 +38,14 @@ type TableConfig struct {
 }
 
 type Table struct {
-	sync.Mutex              // only needed for the multiple writers
-	config     atomic.Value // for reading and writing
-	SpoolDir   string
-	In         chan encoding.Datapoint `json:"-"` // channel api to trade in some performance for encapsulation, for aggregators
-	bad        *badmetrics.BadMetrics
-	tm         *metrics.TableMetrics
-	logger     *zap.Logger
+	sync.Mutex               // only needed for the multiple writers
+	config      atomic.Value // for reading and writing
+	SpoolDir    string
+	In          chan encoding.Datapoint `json:"-"` // channel api to trade in some performance for encapsulation, for aggregators
+	bad         *badmetrics.BadMetrics
+	tm          *metrics.TableMetrics
+	logger      *zap.Logger
+	RequireTags bool // Table has at least one route requiring tags handling
 }
 
 type TableSnapshot struct {
@@ -64,6 +65,7 @@ func New(config cfg.Config) *Table {
 		nil,
 		metrics.NewTableMetrics(),
 		zap.L(),
+		false, // RequireTags
 	}
 
 	t.config.Store(TableConfig{
@@ -755,6 +757,8 @@ func (table *Table) InitRoutes(config cfg.Config, meta toml.MetaData) error {
 				return fmt.Errorf("Failed to create route: %s", err)
 			}
 			table.AddRoute(route)
+			// We want kafka to get metric' tags.
+			table.RequireTags = true
 		case "bg_metadata":
 			bgMetadataCfg := routeConfig.BgMetadata
 			if bgMetadataCfg == nil {

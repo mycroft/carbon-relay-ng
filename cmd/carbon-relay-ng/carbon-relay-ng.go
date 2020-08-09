@@ -134,6 +134,10 @@ func main() {
 	}
 
 	for _, in := range config.Inputs {
+		// No table is requiring tags: Disabling tags parsing.
+		if table.RequireTags {
+			in.SetOmitTags(!table.RequireTags)
+		}
 		err := in.Start(table)
 		if err != nil {
 			log.Fatal(err.Error())

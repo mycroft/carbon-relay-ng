@@ -88,7 +88,7 @@ func (s *Spool) Reader() {
 	ch := s.Out
 	queue := s.queue
 
-	h := encoding.NewPlain(false)
+	h := encoding.NewPlain(false, true)
 	for {
 		if queue.Length() == 0 {
 			time.Sleep(500 * time.Millisecond)

@@ -8,6 +8,7 @@ type FormatOptions struct {
 
 type FormatAdapter interface {
 	Load(msg []byte, tags Tags) (Datapoint, error)
+	SetOmitTags(omitTags bool) FormatAdapter
 	Dump(dp Datapoint) []byte
 	KindS() string
 	Kind() FormatName
@@ -15,10 +16,10 @@ type FormatAdapter interface {
 
 type FormatName string
 
-func (f FormatName) ToHandler(fo FormatOptions) (FormatAdapter, error) {
+func (f FormatName) ToHandler(fo FormatOptions, omitTags bool) (FormatAdapter, error) {
 	switch f {
 	case PlainFormat:
-		return NewPlain(fo.Strict), nil
+		return NewPlain(fo.Strict, omitTags), nil
 	case "":
 		return nil, fmt.Errorf("`format` key can't be empty. Possible value: [plain]")
 	default:
