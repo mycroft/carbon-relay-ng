@@ -12,6 +12,7 @@ type Input interface {
 	Name() string
 	Format() encoding.FormatName
 	Handler() encoding.FormatAdapter
+	SetOmitTags(omitTags bool)
 	Start(d Dispatcher) error
 	Stop() error
 }
@@ -30,6 +31,10 @@ func (b *BaseInput) Handler() encoding.FormatAdapter {
 }
 func (b *BaseInput) Format() encoding.FormatName {
 	return b.handler.Kind()
+}
+
+func (b *BaseInput) SetOmitTags(omitTags bool) {
+	b.handler = b.handler.SetOmitTags(omitTags)
 }
 
 func (b *BaseInput) handleReader(r io.Reader, tags encoding.Tags) error {

@@ -7,7 +7,7 @@ import (
 )
 
 func TestValidationInvalid(t *testing.T) {
-	h := NewPlain(false)
+	h := NewPlain(false, false)
 	metrics := map[string][]byte{
 		"incorrectFields":                []byte("incorrect fields 21300.00 12351123"),
 		"stringValue":                    []byte("incorrect_value two 12351123"),
@@ -27,7 +27,7 @@ func TestValidationInvalid(t *testing.T) {
 	}
 }
 func TestValidationValid(t *testing.T) {
-	h := NewPlain(false)
+	h := NewPlain(false, false)
 	metrics := map[string]([]byte){
 		"normal":         []byte("test.metric 10.00 1000"),
 		"spaces":         []byte("   test.metric   10.00  1000"),
@@ -112,7 +112,7 @@ func BenchmarkAddGraphiteTagToMetadata(B *testing.B) {
 
 func BenchmarkPlainLoadPackets(B *testing.B) {
 	metric := []byte("abcde.test.test.test.test.test.test.test.test.test.ineed.a.one.hundred.byte.metric 21300.00 12351123")
-	h := NewPlain(false)
+	h := NewPlain(false, false)
 	B.Run("Normal", func(B *testing.B) {
 		for i := 0; i < B.N; i++ {
 			h.load(metric, Tags{})

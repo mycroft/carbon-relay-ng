@@ -28,10 +28,11 @@ const dotChar uint8 = '.'
 
 type PlainAdapter struct {
 	Validate bool
+	SkipTags bool
 }
 
-func NewPlain(validate bool) PlainAdapter {
-	return PlainAdapter{Validate: validate}
+func NewPlain(validate bool, omitTags bool) PlainAdapter {
+	return PlainAdapter{Validate: validate, SkipTags: omitTags}
 }
 
 func (p PlainAdapter) parseKey(firstPartDataPoint string) (string, error) {
@@ -119,6 +120,11 @@ func (p PlainAdapter) Load(msgbuf []byte, tags Tags) (Datapoint, error) {
 	return p.load(msgbuf, tags)
 }
 
+func (p PlainAdapter) SetOmitTags(omitTags bool) FormatAdapter {
+	p.SkipTags = omitTags
+	return p
+}
+
 func (p PlainAdapter) load(msgbuf []byte, tags Tags) (Datapoint, error) {
 	d := Datapoint{}
 	if tags == nil {
@@ -150,11 +156,16 @@ func (p PlainAdapter) load(msgbuf []byte, tags Tags) (Datapoint, error) {
 	if err != nil {
 		return d, err
 	}
-	err = putGraphiteTagInTags(d.Name, msg[start:firstSpace], tags)
-	if err != nil {
-		return d, err
+
+	if !p.SkipTags {
+		// If we want to parse tags
+		err = putGraphiteTagInTags(d.Name, msg[start:firstSpace], tags)
+		if err != nil {
+			return d, err
+		}
+		d.Tags = tags
 	}
-	d.Tags = tags
+
 	for msg[firstSpace] == ' ' {
 		firstSpace++
 	}
